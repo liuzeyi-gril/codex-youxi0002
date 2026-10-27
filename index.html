@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#040713">
+  <meta name="description" content="霓虹坦克大战：守护核心，突破三关，击败熔核巨像。">
+  <title>霓虹坦克大战</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="gameShell" class="game-shell" data-state="menu" aria-label="霓虹坦克大战">
+    <canvas id="gameCanvas" width="1280" height="720" tabindex="0" aria-label="霓虹坦克大战游戏画面"></canvas>
+    <div class="screen-fx" aria-hidden="true"></div>
+    <div class="scanlines" aria-hidden="true"></div>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <header id="hud" class="hud">
+      <div class="hud-brand" aria-label="霓虹防线">
+        <span class="brand-mark">霓</span>
+        <span class="brand-copy"><b>霓虹防线</b><small>脉冲战术网络</small></span>
+      </div>
+      <div class="hud-stats">
+        <div class="hud-stat"><span>关卡</span><strong id="levelValue">--</strong></div>
+        <div class="hud-stat"><span>得分</span><strong id="scoreValue">000000</strong></div>
+        <div class="hud-stat hud-stat--health">
+          <span>生命</span>
+          <strong id="livesValue">10 / 10</strong>
+          <i id="lifePips" class="stat-pips" aria-hidden="true"></i>
+        </div>
+        <div class="hud-stat hud-stat--core">
+          <span>核心</span>
+          <strong id="coreValue">5 / 5</strong>
+          <i id="corePips" class="stat-pips" aria-hidden="true"></i>
+        </div>
+        <div class="hud-stat"><span>敌军</span><strong id="enemiesValue">--</strong></div>
+      </div>
+      <div class="hud-actions">
+        <button id="soundButton" class="hud-button" type="button" aria-label="关闭音效" aria-pressed="false">
+          <span class="hud-button-icon" aria-hidden="true">音</span>
+          <span id="soundLabel">音效开</span>
+        </button>
+        <button id="pauseButton" class="hud-button" type="button" aria-label="暂停游戏">
+          <span class="hud-button-icon" aria-hidden="true">Ⅱ</span>
+          <span>暂停</span>
+        </button>
+      </div>
+    </header>
+
+    <div id="bossHud" class="boss-hud" hidden>
+      <div class="boss-title"><span>最终首领</span><b id="bossName">熔核巨像</b></div>
+      <div class="boss-track" role="progressbar" aria-label="首领生命值" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+        <i id="bossFill"></i>
+      </div>
+      <span id="bossValue" class="boss-value">100%</span>
+    </div>
+
+    <div id="notificationLayer" class="notification-layer" aria-live="polite" aria-atomic="false"></div>
+
+    <div id="overlay" class="overlay">
+      <section id="startScreen" class="screen start-screen" aria-labelledby="gameTitle">
+        <div class="start-grid">
+          <div class="start-copy">
+            <p class="eyebrow"><span></span> 2086 // 防线重启协议 <span></span></p>
+            <h1 id="gameTitle">霓虹<br><em>坦克大战</em></h1>
+            <p class="lead">敌军正在突破霓虹防线。驾驶脉冲坦克，守住能量核心，击穿三处战区并终结熔核巨像。</p>
+            <div class="difficulty-block">
+              <span class="field-label">选择难度</span>
+              <div class="segmented" role="group" aria-label="选择难度">
+                <button class="difficulty-button" data-difficulty="easy" type="button" aria-pressed="false">简单</button>
+                <button class="difficulty-button is-selected" data-difficulty="normal" type="button" aria-pressed="true">普通</button>
+                <button class="difficulty-button" data-difficulty="hard" type="button" aria-pressed="false">困难</button>
+              </div>
+              <p id="difficultyHint" class="difficulty-hint">标准敌军节奏，10 点装甲与 3 台备用机体。</p>
+            </div>
+            <button id="startButton" class="primary-button" type="button"><span>开始战斗</span><b aria-hidden="true">›</b></button>
+            <p class="best-line">历史最高分 <strong id="bestScoreMenu">000000</strong></p>
+            <p class="quick-controls">触控：左侧摇杆移动 · 右侧三键持续开火</p>
+          </div>
+          <aside class="briefing-panel" aria-label="作战简报">
+            <div class="briefing-head"><span>作战简报</span><i>03</i></div>
+            <div class="level-list">
+              <div><b>01</b><span><strong>霓虹边境</strong><small>突破外围巡逻队</small></span></div>
+              <div><b>02</b><span><strong>磁暴工厂</strong><small>穿越重装封锁线</small></span></div>
+              <div class="danger"><b>03</b><span><strong>熔核核心</strong><small>击毁最终首领</small></span></div>
+            </div>
+            <div class="control-card">
+              <p class="desktop-controls">WASD / 方向键移动　空格 / J / K / L 开火　P 暂停</p>
+              <p class="touch-controls-copy">左侧摇杆移动　右侧三键持续开火</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="pauseScreen" class="screen compact-screen" aria-labelledby="pauseTitle" hidden>
+        <p class="eyebrow"><span></span> 战术链路待机 <span></span></p>
+        <h2 id="pauseTitle">战术暂停</h2>
+        <p class="screen-note">战场时间已冻结。调整状态后继续推进。</p>
+        <div class="button-stack">
+          <button id="resumeButton" class="primary-button" type="button"><span>继续战斗</span><b aria-hidden="true">›</b></button>
+          <button id="restartButton" class="secondary-button" type="button">重新开始</button>
+          <button id="pauseMenuButton" class="text-button" type="button">返回主菜单</button>
+        </div>
+      </section>
+
+      <section id="levelScreen" class="screen compact-screen" aria-labelledby="levelScreenTitle" hidden>
+        <p class="eyebrow"><span></span> 战区净化完成 <span></span></p>
+        <h2 id="levelScreenTitle">突破成功</h2>
+        <p id="levelScreenText" class="screen-note">下一处战区已解锁。</p>
+        <div id="levelScreenStats" class="stat-strip"></div>
+        <div class="button-stack">
+          <button id="levelButton" class="primary-button" type="button"><span>进入下一战区</span><b aria-hidden="true">›</b></button>
+          <button id="levelMenuButton" class="text-button" type="button">返回主菜单</button>
+        </div>
+      </section>
+
+      <section id="resultScreen" class="screen compact-screen" aria-labelledby="resultTitle" hidden>
+        <p id="resultEyebrow" class="eyebrow"><span></span> 战区报告 <span></span></p>
+        <h2 id="resultTitle">核心失守</h2>
+        <p id="resultText" class="screen-note"></p>
+        <div id="resultStats" class="stat-strip"></div>
+        <div class="button-stack">
+          <button id="resultRestartButton" class="primary-button" type="button"><span>再次出击</span><b aria-hidden="true">›</b></button>
+          <button id="resultMenuButton" class="text-button" type="button">返回主菜单</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="touchControls" class="touch-controls" aria-hidden="true">
+      <div id="joystick" class="joystick" aria-label="移动摇杆">
+        <div class="joystick-ring"></div>
+        <div id="joystickKnob" class="joystick-knob"><span></span></div>
+      </div>
+      <div class="fire-cluster" aria-label="三键发射控制">
+        <span class="fire-cluster-label" aria-hidden="true">三联动火力</span>
+        <button id="fireButton2" class="fire-button fire-button--aux fire-button--left" type="button" aria-label="左侧副炮持续开火">
+          <span class="fire-halo" aria-hidden="true"></span>
+          <span class="fire-icon" aria-hidden="true"></span>
+          <small>左炮</small>
+        </button>
+        <button id="fireButton" class="fire-button fire-button--main" type="button" aria-label="主炮持续开火">
+          <span class="fire-halo" aria-hidden="true"></span>
+          <span class="fire-icon" aria-hidden="true"></span>
+          <small>主炮</small>
+        </button>
+        <button id="fireButton3" class="fire-button fire-button--aux fire-button--right" type="button" aria-label="右侧副炮持续开火">
+          <span class="fire-halo" aria-hidden="true"></span>
+          <span class="fire-icon" aria-hidden="true"></span>
+          <small>右炮</small>
+        </button>
+      </div>
+    </div>
+
+    <div id="rotateHint" class="rotate-hint" hidden>
+      <div class="rotate-device" aria-hidden="true"><span></span></div>
+      <p class="eyebrow"><span></span> 自适应协议 <span></span></p>
+      <h2>请旋转手机</h2>
+      <p>横屏进入 16:9 战场，操作空间更充足。</p>
+    </div>
+  </main>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
